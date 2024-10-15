@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<!-- saved from url=(0026)https://hlddrole.nl/radje/ -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <title>rad smoothing</title>
+    <script src="./Het Leuke rad_files/jquery.min.js.download"></script>
+    <link href="./Het Leuke rad_files/css2" rel="stylesheet">
+    <style>
+        body{
+            text-align:center;
+            font-family: 'Arial';
+        }
+        #wheel{
+            display:inline-block;
+            position:relative;
+            margin-top: 30px; /* From h1 */
+        }
+
+        .arrow {
+            position: absolute;
+            right: -20px;
+            top: 48%;
+            border-right: 50px solid black;
+            border-top: 15px solid transparent;
+            border-bottom: 15px solid transparent;
+        }
+
+        .arrow:after {
+            content: '';
+            position: absolute;
+            top: -14px;
+            left: 49px;
+            border-left: 30px solid black;
+            border-top: 15px solid transparent;
+            border-bottom: 15px solid transparent;
+        }
+
+        .button {
+                background-color: black;
+                border: none;
+                color: white;
+                font-weight: 700;
+                padding: 15px 40px;
+                border-radius: 7px;
+                margin-top: 10px;
+                font-family: 'Arial';
+                cursor: pointer;
+            }
+            button:focus, button:hover {
+                outline:none;
+        }
+
+        [class|="confetti"] {
+            position: fixed;
+            z-index: 10;
+        }
+        .red {
+            background-color: #ff1b40;
+        }
+        .green {
+            background-color: #4cb050;
+        }
+        .uitleg {
+            font-family: 'Arial';
+            margin-top: 20px;
+            font-size: 20px;
+        }
+        img {
+            vertical-align: middle;
+        }
+        h1 {
+            font-size: 25px;
+            margin-top: 40px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1><img src="./Het Leuke rad_files/kelk.png" width="40px"> Radje draaien, Leuk!</h1>
+    <div id="wheel">
+        <div class="arrow"></div>
+        <canvas id="canvas" width="600" height="600"></canvas>
+    </div>
+
+    <br>
+    <button id="start">Draai het rad!</button>
+    <br>
+    <div class="uitleg">
+    </div>
+    <div class = "output">
+    </div> <!-- TEST -->
+    <script>
+        function rand(min, max) {
+            return Math.random() * (max - min) + min;
+        }
+
+        var label = [
+            'NK Spoelbakkenrace',
+            'Een praatje',
+            'Vengaboys Tribute Band',
+            'Bestel 6 Apfelkorn',
+            'Muziekkwis',
+            "DJ Bardo's Disco Show",
+            'Veegborrel',
+            'Bestel 4 vaasjes bier',
+            'Camping Disco Mix',
+            'Gratis pitcher bier',
+            'Officiële opening',
+            'Gratis strippenkaart',
+            'Iedereen moet naar huis',
+            'Karaoke',
+            '100 free spins',
+            'Stoelendans',
+            'Fustje!!!',
+            'Animatieteam Dans',
+            'Bestel 5 Flügel',
+            'Bingo'
+        ];
+        var uitleg = label;
+
+
+        const mapping = {
+            0: 10,
+            1: 1,
+            2: 16,
+            3: 17,
+            4: 19,
+            5: 5,
+            6: 8,
+            7: 0,
+            8: 4,
+            9: 11,
+        }
+
+        var draaiCounter = [];
+
+        var slices = label.length;
+        var sliceDeg = 360/slices;
+        /* AANGEPAST var deg = rand(0, 360); */
+        var deg = 0
+        var speed = 0;
+        var slowDownRand = 0;
+        var ctx = canvas.getContext('2d');
+        var width = canvas.width - 5; // size
+        var center = canvas.width/2;      // center
+        var isStopped = false;
+        var lock = 0;
+        var isStarted = false;
+        var roundMaxSpeed = 0;
+        var incrementer = 0.1;
+        var confettiCounter = 0;
+        var skip = false;
+        var skipped_slice = -1;
+        var button = document.getElementById("start");
+
+        var audioElement = document.createElement('audio');
+        audioElement.setAttribute('src', 'https://www.hlddrole.nl/terrortablet/drumroll.mp3');
+        var audioElement2 = document.createElement('audio');
+        audioElement2.setAttribute('src', 'https://www.hlddrole.nl/terrortablet/partyhorn.mp3');
+
+        var keyStrokeChoice = 1;
+        function updateVariable(event) {
+            const key = event.key; // Get the key pressed
+            const num = parseInt(key, 10); // Convert key to number
+            if (num >= 0 && num <= 10) {
+                keyStrokeChoice = num;
+                console.log(`Variable updated to: ${keyStrokeChoice}`);
+            }
+        }
+
+
+
+        function deg2rad(deg) {
+            return deg * (Math.PI / 180);
+        }
+
+        function rad2deg(rad) {
+            return rad * (180 / Math.PI);
+        }
+
+
+        function drawSlice(deg, color) {
+            ctx.beginPath();
+            ctx.fillStyle = color;
+            ctx.moveTo(center, center);
+            ctx.arc(center, center, width/2, deg2rad(deg), deg2rad(deg+sliceDeg));
+            ctx.lineTo(center, center);
+            ctx.fill();
+        }
+
+        function drawText(deg, text) {
+            ctx.save();
+            ctx.translate(center, center);
+            ctx.rotate(deg2rad(deg));
+            ctx.textAlign = "right";
+            ctx.fillStyle = "#fff";
+            ctx.font = "700 15px 'Arial'";
+            ctx.fillText(text, 280, 5);
+            ctx.restore();
+        }
+
+        function drawImg() {
+            ctx.clearRect(0, 0, width, width);
+            for(var i=0; i<slices; i++){
+                drawSlice(deg, (i % 2 == 0 ? '#fe0034' : '#01b43f'));
+                drawText(deg+sliceDeg/2, label[i]);
+                deg += sliceDeg;
+            }
+            ctx.beginPath();
+            ctx.lineWidth = 5;
+            ctx.arc(center, center, width/2, 0, 2 * Math.PI);
+            ctx.stroke();
+        }
+
+        function getCurrentID() {
+            cid = Math.floor(((360 - deg) % 360) / sliceDeg);
+            cid = (slices+cid)%slices;
+            // $(".output").text(cid);
+            return cid
+        }
+
+        function getTargetModDeg(num) {
+            id = slices - num - 1;
+            return id * sliceDeg + sliceDeg * Math.random();
+        }
+
+        function logarithmicCurve(x, a, b) {
+            c = a / b;
+            return (1 - Math.exp(-a * x)) / (1 - Math.exp(-b * c));
+        }
+
+        var Terugdraai = false;
+
+        function calcNumRotations(min, max) {
+            Math.floor(min + Math.random() * (max - min))
+        }
+
+        // Harmonic damping parameters
+        var alpha = 6.5 + Math.random() * 1;
+        var beta = 3 + Math.random() * 2;
+
+        var minNumRotations = 5;
+        var maxNumRotations = 9;
+
+        var numRotations = Math.floor(minNumRotations + Math.random() * (maxNumRotations - minNumRotations));
+
+        var targetID = mapping[keyStrokeChoice];
+        var targetModDeg = getTargetModDeg(targetID);
+        var totalAngle = numRotations*360 + targetModDeg;
+        var time = 0;
+        var deltaDeg = 0;
+        var normDeg = 0;
+        var slowingFactor = 0.5 + 0.7 * Math.random();
+
+        var probTerugdraai = 0.2;
+
+// ANIMATIE
+
+        (function anim() {
+
+            if (isStarted) {
+                if (time < 1) {
+                    increment = 0.0033 * slowingFactor
+                    time += increment;
+
+                    if (!Terugdraai) {
+                        normDeg = logarithmicCurve(time, alpha, beta);
+                        deg = totalAngle * normDeg;
+                    } else {
+                        if (time < 0.90) {
+                            normDeg = logarithmicCurve(time + 0.1, alpha, beta)*1.00 ;
+                            deg = totalAngle * normDeg + 10 * normDeg;
+                        } else {
+                            deg -= 10 / (0.10 / increment)
+                        }
+                    }
+
+                    button.disabled = true;
+                }
+
+                if (time > 1) {
+                    // deg = totalAngle;
+                    normDeg = 0;
+                    isStarted = false
+                    time = 0;
+                    lock = 1;
+                    button.disabled = false;
+                    Terugdraai = false;
+                }
+            }
+
+            // Laat resultaat zien
+            if(lock != 0){
+                ai = getCurrentID();
+                audioElement2.play();
+                $(".uitleg").text(uitleg[ai]);
+                lock = 0;
+                isStopped = false;
+
+                for (var i = confettiCounter; i < confettiCounter + 77; i++) {
+                    create(i);
+                    console.log(i)
+                }
+                confettiCounter += 77;
+
+            }
+
+            modDeg = deg % 360;
+
+            // $(".output").text(normDeg + " " + isStarted + " " + targetID);
+
+            drawImg();
+            window.requestAnimationFrame( anim );
+
+
+
+        }());
+
+        document.getElementById("start").addEventListener("mousedown", function(){
+            targetID = mapping[keyStrokeChoice];
+
+            // Define new rotation
+            numRotations = Math.floor(minNumRotations + Math.random() * (maxNumRotations - minNumRotations));
+            targetModDeg = getTargetModDeg(targetID);
+            totalAngle = numRotations*360 + targetModDeg;
+
+            // Add randomness
+            alpha = 6.5 + Math.random() * 1;
+            beta = 3 + Math.random() * 2;
+            slowingFactor = 0.5 + 0.7 * Math.random();
+            if (Math.random() < probTerugdraai) Terugdraai = true;
+
+            // Start rotation
+            isStarted = true;
+            audioElement.play();
+
+            // roundMaxSpeed = rand(13, 20)
+	    setTimeout(function(){
+		audioElement.pause();
+		audioElement.currentTime = 0;
+	    }, 5500)
+            $(".uitleg").text("");
+        }, false);
+
+// TARGET KIEZEN
+
+        document.addEventListener('keydown', updateVariable);
+
+//CONFETTI
+
+        function create(i) {
+            var width = Math.random() * 10 + 20;
+            var height = width * 0.4;
+            var colourIdx = Math.ceil(Math.random() * 2);
+            var colour = "red";
+            switch(colourIdx) {
+                case 1:
+                    colour = "green";
+                    break;
+                case 2:
+                    colour = "red";
+                    break;
+            }
+            $('<div class="confetti-'+i+' '+colour+'"></div>').css({
+                "width" : width+"px",
+                "height" : height+"px",
+                "top" : -Math.random()*20+"%",
+                "left" : Math.random()*100+"%",
+                "opacity" : Math.random()+0.5,
+                "transform" : "rotate("+Math.random()*360+"deg)"
+            }).appendTo('body');
+
+            drop(i);
+        }
+
+        function drop(x) {
+            $('.confetti-'+x).animate({
+                top: "100%",
+                left: "+="+Math.random()*15+"%"
+            }, Math.random()*3000 + 3000, function() {
+                $('.confetti-'+x).remove();
+                // reset(x);
+            });
+        }
+
+        function reset(x) {
+            $('.confetti-'+x).animate({
+                "top" : -Math.random()*20+"%",
+                "left" : "-="+Math.random()*15+"%"
+            }, 0, function() {
+                drop(x);
+            });
+        }
+    </script>
+
+</body></html>
