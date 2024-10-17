@@ -8,35 +8,43 @@
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;900&display=swap" rel="stylesheet">
     <style>
         body{
+            margin: 0;
             text-align:center;
-            font-family: 'Arial';
+            font-family: 'Montserrat';
         }
+        .center-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+        }
+
         #wheel{
             display:inline-block;
             position:relative;
-            margin-top: 30px; /* From h1 */
         }
-
         .arrow {
             position: absolute;
-            right: -20px;
-            top: 48%;
-            border-right: 50px solid black;
-            border-top: 15px solid transparent;
-            border-bottom: 15px solid transparent;
+            margin-left: 10px;
+            margin-top: -10px;
+            left: 100%;
+            top: 50%;
+            border-bottom: 15px solid white;
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            transform: rotateZ(90deg);
         }
-
         .arrow:after {
             content: '';
             position: absolute;
-            top: -14px;
-            left: 49px;
-            border-left: 30px solid black;
-            border-top: 15px solid transparent;
-            border-bottom: 15px solid transparent;
+            left: -10px;
+            top: 15px;
+            border-top: 50px solid white;
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
         }
-
-        .button {
+        button {
             background-color: black;
             border: none;
             color: white;
@@ -44,10 +52,9 @@
             padding: 15px 40px;
             border-radius: 7px;
             margin-top: 10px;
-            font-family: 'Arial';
+            font-family: 'Montserrat';
             cursor: pointer;
         }
-
         button:focus, button:hover {
             outline:none;
         }
@@ -63,10 +70,20 @@
             background-color: #4cb050;
         }
         .uitleg {
-            font-family: 'Arial';
-            margin-top: 20px;
-            font-size: 20px;
+            font-family: 'Montserrat';
+            font-size: 50px;
+            text-transform: uppercase;
+            color: white;
+            position: fixed;
+            top: 50%;
+            transform: translateY(-50%);
+            text-shadow: 5px -4px 0px black;
         }
+        .other-color {
+            color: #ff29eb;
+            text-shadow: 5px -5px 0px white;
+        }
+
         img {
             vertical-align: middle;
         }
@@ -75,27 +92,42 @@
             margin-top: 40px;
             margin-bottom: 10px;
         }
+        .bg-img {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: -1;
+        }
     </style>
 </head>
 
 <body>
-    <h1><img src="kelk.png" width="40px"> Radje draaien, Leuk!</h1>
-    <div id="wheel">
-        <div class="arrow"></div>
-        <canvas id="canvas" width="600" height="600"></canvas>
-    </div>
 
-    <br>
-    <button id="start">Draai het rad!</button>
-    <br>
-    <div class="uitleg">
-    </div>
-    <div class = "output">
+    <video autoplay muted loop id="myVideo" class="bg-img">
+        <source src="disco.mp4" type="video/mp4">
+    </video>
+    <div class="center-wrapper">
+        <div id="wheel">
+            <div class="arrow"></div>
+            <canvas id="canvas" width="600" height="600"></canvas>
+        </div>
+
+        <div class="uitleg">
+        </div>
+        <div class="output">
+        </div>
     </div>
     <script>
         function rand(min, max) {
             return Math.random() * (max - min) + min;
         }
+
+        setInterval(() => {
+            document.querySelector('.uitleg').classList.toggle('other-color');
+        }, 500);
 
         const labels = [
             'NK Spoelbakkenrace',
@@ -153,7 +185,6 @@
         var confettiCounter = 0;
         var skip = false;
         var skipped_slice = -1;
-        var button = document.getElementById("start");
 
         var audioElement = document.createElement('audio');
         audioElement.setAttribute('src', 'https://www.hlddrole.nl/terrortablet/drumroll.mp3');
@@ -206,6 +237,7 @@
             }
             ctx.beginPath();
             ctx.lineWidth = 5;
+            ctx.strokeStyle = '#fff';
             ctx.arc(center, center, width/2, 0, 2 * Math.PI);
             ctx.stroke();
         }
@@ -256,7 +288,7 @@
 
             if (isStarted) {
                 if (time < 1) {
-                    increment = 0.0033 * slowingFactor
+                    increment = 0.001 * slowingFactor
                     time += increment;
 
                     if (!Terugdraai) {
@@ -271,7 +303,6 @@
                         }
                     }
 
-                    button.disabled = true;
                 }
 
                 if (time > 1) {
@@ -280,7 +311,6 @@
                     isStarted = false
                     time = 0;
                     lock = 1;
-                    button.disabled = false;
                     Terugdraai = false;
                 }
             }
@@ -295,7 +325,6 @@
 
                 for (var i = confettiCounter; i < confettiCounter + 77; i++) {
                     create(i);
-                    console.log(i)
                 }
                 confettiCounter += 77;
 
@@ -310,31 +339,33 @@
 
         }());
 
-        document.getElementById("start").addEventListener("mousedown", function(){
-            targetID = mapping[keyStrokeChoice];
+        document.addEventListener('keydown', function(event) {
+            if (event.code === 'Space') {
+                targetID = mapping[keyStrokeChoice];
 
-            // Define new rotation
-            numRotations = Math.floor(minNumRotations + Math.random() * (maxNumRotations - minNumRotations));
-            targetModDeg = getTargetModDeg(targetID);
-            totalAngle = numRotations*360 + targetModDeg;
+                // Define new rotation
+                numRotations = Math.floor(minNumRotations + Math.random() * (maxNumRotations - minNumRotations));
+                targetModDeg = getTargetModDeg(targetID);
+                totalAngle = numRotations*360 + targetModDeg;
 
-            // Add randomness
-            alpha = 6.5 + Math.random() * 1;
-            beta = 3 + Math.random() * 2;
-            slowingFactor = 0.5 + 0.7 * Math.random();
-            if (Math.random() < probTerugdraai) Terugdraai = true;
+                // Add randomness
+                alpha = 6.5 + Math.random() * 1;
+                beta = 3 + Math.random() * 2;
+                slowingFactor = 0.5 + 0.7 * Math.random();
+                if (Math.random() < probTerugdraai) Terugdraai = true;
 
-            // Start rotation
-            isStarted = true;
-            audioElement.play();
+                // Start rotation
+                isStarted = true;
+                audioElement.play();
 
-            // roundMaxSpeed = rand(13, 20)
-	    setTimeout(function(){
-		audioElement.pause();
-		audioElement.currentTime = 0;
-	    }, 5500)
-            $(".uitleg").text("");
-        }, false);
+                // roundMaxSpeed = rand(13, 20)
+                setTimeout(function(){
+                    audioElement.pause();
+                    audioElement.currentTime = 0;
+                }, 5500)
+                $(".uitleg").text("");
+            }
+        });
 
 // TARGET KIEZEN
 
