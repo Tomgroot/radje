@@ -112,7 +112,22 @@
         }
         .output {
             color: white;
-            font-size: 30px;
+            font-size: 2rem;
+            text-shadow: 5px -4px 0px black;
+        }
+        a {
+            color: lightblue;
+            text-decoration: none;
+        }
+        .qr-code {
+            position: fixed;
+            left: 5vw;
+            top: 20%;
+            color: white;
+            text-wrap: wrap;
+            font-size: 1.25rem;
+            width: 20vw;
+            text-shadow: 5px -4px 0px black;
         }
     </style>
 </head>
@@ -120,6 +135,9 @@
 <body>
     <div class="bg-overflow"></div>
 
+    <div class="qr-code">
+        Ga naar <a href="#">keusisreus.nl/haventje</a> om een berichtje te sturen naar de disco crew!
+    </div>
     <video autoplay muted loop id="myVideo" class="bg-img">
         <source src="disco.mp4" type="video/mp4">
     </video>
@@ -142,7 +160,12 @@
             fetch('https://keusisreus.nl/haventje/api.php')
                 .then(response => response.json())
                 .then(data => {
-                    let index = 0;
+                    let index = data.length - 10;
+
+                    if (index < 0) {
+                        index = 0;
+                    }
+
                     function showMessage() {
                         const message = data[index].message;
                         const outputElement = document.querySelector('.output');
